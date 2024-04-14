@@ -180,16 +180,49 @@ public class Poker{
         Collections.sort(list);
         return list.get(list.size() - 1);
 	}
-	//计算牌总点数
-	private int sumPoint(ArrayList<Integer> list) {
-        int sum = 0;
-        for (int i = 0; i < list.size(); i++) {
-            sum += list.get(i);
-        }
-        return sum;
-    }
+	//递归找出7张牌中所有5张牌的组合
+	public static List<String> generateCombinations(String[] cards, int k) {
+	    List<String> combinations = new ArrayList<>();
+	    int[] chosen = new int[k];
+	    generateCombinationsHelper(combinations, cards, chosen, 0, 0, k);
+	    return combinations;
+	}
+
+	private static void generateCombinationsHelper(List<String> combinations, String[] cards, int[] chosen, int index, int start, int k) {
+	    if (index == k) {
+	        StringBuilder s = new StringBuilder();
+	        for (int i = 0; i < k; i++) {
+	            s.append(cards[chosen[i]]);
+	            if (i < k - 1) s.append(" ");
+	        }
+	        combinations.add(s.toString());
+	        return;
+	    }
+	    for (int i = start; i < cards.length; i++) {
+	        chosen[index] = i;
+	        generateCombinationsHelper(combinations, cards, chosen, index + 1, i + 1, k);
+	    }
+	}
+	//返回7张牌中最强的5张
+	private static String findBestHand(String cards) {
+	    String[] allCards = cards.split(" ");
+	    List<String> combinations = generateCombinations(allCards, 5);
+	    int maxHandStrength = 0;
+	    String bestHandCombo = "";
+
+	    for (String combo : combinations) {
+	        int handStrength = check(combo);
+	        if (handStrength > maxHandStrength) {
+	            maxHandStrength = handStrength;
+	            bestHandCombo = combo;
+	        }
+	    }
+	    return bestHandCombo;
+	}
+
+	
 	//输入两个玩家的牌型，比较出胜者
-	public String compare_winner(String P1, String P2) {
+	public static String compare_winner(String P1, String P2) {
 		int p1 = check(P1);
 		int p2 = check(P2);
 		if (p1 > p2) {
@@ -464,6 +497,19 @@ public class Poker{
 		//同花顺，9
 		i = check("2C 3C 4C 5C 6C 6D 7H");
 		System.out.println(i);
-		
+		String ans;
+		ans = compare_winner("2C 3C 4C 5C 6C", "3C 4C 5C 6C 7C");
+		System.out.println(ans);
+		ans = compare_winner("2C 3H 4S TC AH", "4S TC AH 6D 7H");
+		System.out.println(ans);
+		String cards = "2C 7H 2H 6D 2S 2D 4H";
+		/*
+		String[] allCards = cards.split(" ");
+		List<String> combinations = generateCombinations(allCards, 5);
+		for (String combo : combinations) {
+			System.out.println(combo);
+		}*/
+		ans = findBestHand(cards);
+		System.out.println(ans);
 	}
 }
