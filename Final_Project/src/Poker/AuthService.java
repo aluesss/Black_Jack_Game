@@ -3,6 +3,8 @@ package Poker;
 import java.util.Optional;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 public class AuthService {
 
@@ -12,16 +14,22 @@ public class AuthService {
         this.userDao = userDao;
     }
     
-    public boolean register(String username, String password, String email, String securityQuestion, String securityAnswer) {
+    public boolean register(String username, String password, String email, String securityQuestion, String securityAnswer, int initialScore) {
         if (userDao.usernameExists(username)) {
             throw new IllegalStateException("该用户名已被占用");
         }
         if (userDao.emailExists(email)) {
             throw new IllegalStateException("该邮箱已被占用");
         }
-        String encryptedPassword = encryptPassword(password);
-        User user = new User(username, encryptedPassword, email, 0, securityQuestion, securityAnswer);
+        String encryptedPassword = encryptPassword(password);  // 加密密码
+        // 使用参数中的 initialScore 创建用户
+        User user = new User(username, encryptedPassword, email, initialScore, securityQuestion, securityAnswer);
         return userDao.addUser(user);
+    }
+
+
+    public boolean updateUserScore(String username, int newScore) {
+        return userDao.updateScore(username, newScore);
     }
 
 
@@ -67,4 +75,44 @@ public class AuthService {
             throw new RuntimeException("Could not hash password", e);
         }
     }
+    
+    public boolean deleteUser(String username, String password, String email) {
+        // 加密输入的密码
+        String encryptedPassword = encryptPassword(password);
+        // 使用validateUser 方法来验证用户身份
+        Optional<User> user = userDao.validateUser(username, encryptedPassword);
+        if (user.isPresent() && user.get().getEmail().equals(email)) {
+            // 如果用户存在并且电子邮箱匹配，则删除用户
+            return userDao.deleteUser(username);
+        }
+        return false; // 如果验证失败，返回 false
+    }
+    
+    public Optional<User> validateUser(String username, String password) {
+        String encryptedPassword = encryptPassword(password);  // 使用加密方法
+        return userDao.validateUser(username, encryptedPassword);  // 调用 validateUser 方法
+    }
+
+    public boolean canClaimReward(String username) {
+        Date lastClaimed = userDao.getLastRewardClaimed(username);
+        return lastClaimed == null || !isSameDay(lastClaimed, new Date()); //如果lastClaimed == null则说明该用户是第一次领取签到奖励，可以直接发放签到奖励
+    }
+    
+    public boolean isSameDay(Date date1, Date date2) {
+        SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd");
+        return fmt.format(date1).equals(fmt.format(date2));
+    }
+
+    public void recordRewardClaim(String username) {
+        userDao.updateLastRewardClaimed(username, new Date());
+    }
+    
+    public Date getLastRewardClaimed(String username) {
+        return userDao.getLastRewardClaimed(username);
+    }
+    
+    public void updateLastRewardClaimed(String username, Date date) {
+        userDao.updateLastRewardClaimed(username, date);
+    }
+
 }

@@ -2,12 +2,14 @@ package Poker;
 
 import java.sql.*;
 import java.util.Optional;
+import java.util.Date;
+//import java.text.SimpleDateFormat;
 
 public class UserDaoImpl implements UserDao {
 
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/pokerdb";
-    private static final String USER = "root";
-    private static final String PASS = "1768";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/pokerdb";// 连接MySQL数据库
+    private static final String USER = "root";// MySQL数据库用户名
+    private static final String PASS = "1768";// MySQL数据库中该用户名对应的密码
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, USER, PASS);
@@ -141,6 +143,20 @@ public class UserDaoImpl implements UserDao {
             return false;
         }
     }
+    
+    @Override
+    public boolean updateScore(String username, int score) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement("UPDATE users SET score = ? WHERE username = ?")) {
+            stmt.setInt(1, score);
+            stmt.setString(2, username);
+            int affectedRows = stmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
 
     @Override
     public boolean emailExists(String email) {
@@ -155,4 +171,37 @@ public class UserDaoImpl implements UserDao {
             return false;
         }
     }
+    
+    @Override
+    public boolean updateLastRewardClaimed(String username, Date date) {
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement("UPDATE users SET last_reward_claimed = ? WHERE username = ?")) {
+            stmt.setDate(1, new java.sql.Date(date.getTime()));
+            stmt.setString(2, username);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    @Override
+    public Date getLastRewardClaimed(String username) {
+        String sql = "SELECT last_reward_claimed FROM users WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDate("last_reward_claimed");
+            } else {
+                return null; // 当没有记录时返回 null，这种情况在本系统中表示用户自从注册以来还没领过签到奖励
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+
 }

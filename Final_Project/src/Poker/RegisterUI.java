@@ -73,26 +73,61 @@ public class RegisterUI extends JFrame {
         String email = emailField.getText();
         String securityQuestion = securityQuestionField.getText();
         String securityAnswer = securityAnswerField.getText();
-
+        
+        if (username.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "用户名不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "密码不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (confirmPassword.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "确认密码不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "邮箱不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (securityQuestion.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "安全问题不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (securityAnswer.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "安全问题的答案都不能为空", "错误", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         if (!password.equals(confirmPassword)) {
             JOptionPane.showMessageDialog(this, "密码和确认密码不匹配", "错误", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        
         if (securityQuestion.isEmpty() || securityAnswer.isEmpty()) {
             JOptionPane.showMessageDialog(this, "请填写安全问题及其答案", "错误", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        
+        // 设定用户注册时的初始积分
+        int initialScore = 500;
+
         try {
-        	// 密码加密存储提高安全性
-            boolean success = authService.register(username, authService.encryptPassword(password), email, securityQuestion, securityAnswer);
+            // 对密码进行加密
+            String encryptedPassword = authService.encryptPassword(password);
+            // 调用注册方法并传入初始积分
+            boolean success = authService.register(username, encryptedPassword, email, securityQuestion, securityAnswer, initialScore);
             if (success) {
-                JOptionPane.showMessageDialog(this, "注册成功");
-                dispose(); // 可选择关闭窗口
+                JOptionPane.showMessageDialog(this, "注册成功，恭喜获得注册奖励 Score：" + initialScore);
+                dispose(); // 关闭注册窗口
+            } else {
+                JOptionPane.showMessageDialog(this, "注册失败，请重试", "错误", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IllegalStateException e) {
             JOptionPane.showMessageDialog(this, e.getMessage(), "注册错误", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
