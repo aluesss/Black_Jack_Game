@@ -101,7 +101,7 @@ public class Hand {
 
 	    // 遍历手中的每张牌，累加点数
 	    for (int i = 0; i < num_cards; i++) {
-	        int value = cards[i].getRankValue(); // 假设Card类有一个方法getRankValue()来返回牌的21点游戏中的点数
+	        int value = cards[i].getRankValue(); // Card类有一个方法getRankValue()来返回牌的21点游戏中的点数
 	        if (value == 1) { // 如果是Ace
 	            aceCount++;
 	            totalValue += 1; // 先把Ace当作1分计算

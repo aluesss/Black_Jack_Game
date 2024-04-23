@@ -113,11 +113,11 @@ public class PokerServer extends JFrame implements Runnable{
         private void handleGameActions() throws IOException {
             while (!clientStopStatus.get(clientID)) {
                 String action = inputFromClient.readUTF();
-                if ("call".equals(action)) {
+                if ("hit".equals(action)) {
                     synchronized (deck) {
                         Card newCard = deck.Deal();
                         outputToClient.writeUTF(newCard.toString());
-                        server_window.append("Client " + clientID + " called and received: " + newCard.toString() + "\n");
+                        server_window.append("Client " + clientID + " hitted and received: " + newCard.toString() + "\n");
                     }
                 } else if ("stop".equals(action)) {
                     clientStopStatus.put(clientID, true);
@@ -152,6 +152,8 @@ public class PokerServer extends JFrame implements Runnable{
 			// TODO Auto-generated method stub
 			try {
 	            // Wait for client to send "ready"
+				//从数据库中发出玩家还有多少筹码，待办！！！！！
+				outputToClient.writeUTF("筹码");
 	            waitForReady();
 	            deck.Shuffle();
                 Card c1 = deck.Deal();
