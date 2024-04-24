@@ -136,25 +136,28 @@ public class PokerClient extends JFrame{
 
     private void onBet(ActionEvent e) {
         // 处理Bet按钮事件
+    	for (int i = 0; i < 5; i++) {
+            ServerImagePanels[i].updateImage(new ImageIcon("./images/card_back.png").getImage());
+        }
+        for (int i = 0; i < 5; i++) {
+            ClientImagePanels[i].updateImage(new ImageIcon("./images/card_back.png").getImage());
+        }
+        Player_hand.removeAllCards();
+        currCard_client = 0;
+        currCard_server = 1;
     	int bet = Integer.parseInt(betField.getText());
     	if (bet <= 0) {
     		statusLabel.setText("Please type a value >= 0.");
     	}
     	else {
-    		for (int i = 0; i < 5; i++) {
-                ServerImagePanels[i].updateImage(new ImageIcon("./images/card_back.png").getImage());
-            }
-            for (int i = 0; i < 5; i++) {
-                ClientImagePanels[i].updateImage(new ImageIcon("./images/card_back.png").getImage());
-            }
-            Player_hand.removeAllCards();
 	    	try {
 				toServer.writeUTF("ready");
 				toServer.writeInt(bet);
 				statusLabel.setText("Waiting for other players...");
-				String response = fromServer.readUTF();
-				statusLabel.setText(response);
+				
 				String card = fromServer.readUTF();
+				System.out.println(card);
+				
 				ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
 				currCard_server ++;
 				//玩家的牌
@@ -184,7 +187,6 @@ public class PokerClient extends JFrame{
     			statusLabel.setText("You can't hit more, the maximun amount of card has reached, value: " + Player_hand.getBlackjackValue());
     		}
     		else if(Player_hand.getBlackjackValue() > 21) {
-    			//statusLabel.setText("Your hand has busted (" + "value: " + Player_hand.getBlackjackValue() + ") can't hit more cards");
     			statusLabel.setText("Your hand has busted (" + "value: " + Player_hand.getBlackjackValue() + "). Please click stop.");
     		}
     		else {
@@ -218,7 +220,6 @@ public class PokerClient extends JFrame{
 					ServerImagePanels[0].updateImage(new ImageIcon("./images/card_" + hidden_card + ".png").getImage());
 				}
 				else if ("done".equals(card)) {
-	                // When "done" is received, break out of the loop
 	                break;
                 }
 				else {

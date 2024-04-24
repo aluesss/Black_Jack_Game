@@ -144,6 +144,7 @@ public class Hand {
 		System.out.println(h2.toString());
 		System.out.println("1:" + h3.toString());
 		h3.removeAllCards();
+		h3.addCard(card2);
 		System.out.println("2:" + h3.toString());
 	}
 }

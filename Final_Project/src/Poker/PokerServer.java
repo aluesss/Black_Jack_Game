@@ -27,7 +27,7 @@ public class PokerServer extends JFrame implements Runnable{
 	private static Map<Integer, Integer> clientbet = new HashMap<>();
 	private static Map<Integer, Integer> clientvalue = new HashMap<>();
 	private static Map<Integer, String> clientresult = new HashMap<>();
-	private static Deck deck = new Deck();
+	private static Deck deck;
 	private static Hand Dealer_hand = new Hand(); 
 	private static Card hidden_card;
 	
@@ -108,9 +108,6 @@ public class PokerServer extends JFrame implements Runnable{
                 	clientReadyStatus.put(clientID, true);
                     clientbet.put(clientID, bet);
                     server_window.append("Client " + clientID + " is ready with bet: " + bet + ".\n");
-                    if (allClientsReady()) {
-                    	broadcast("All clients ready, proceeding with game.\n");
-                    }
                 }
             }
         }
@@ -118,7 +115,6 @@ public class PokerServer extends JFrame implements Runnable{
             while (!clientStopStatus.get(clientID)) {
                 String action = inputFromClient.readUTF();
                 if ("hit".equals(action)) {
-                	Dealer_hand.removeAllCards();
                     synchronized (deck) {
                         Card newCard = deck.Deal();
                         outputToClient.writeUTF(newCard.toString());
@@ -161,6 +157,7 @@ public class PokerServer extends JFrame implements Runnable{
                         server_window.append("Result: " + outcome + "\n");
                         outputToClient.writeUTF(outcome);
                         outputToClient.writeInt(dealerValue);
+                        
                     }
                 }
             }
@@ -168,37 +165,40 @@ public class PokerServer extends JFrame implements Runnable{
 		@Override
 		public void run() {
 			// TODO Auto-generated method stub
-			try {
-	            // Wait for client to send "ready"
-				//从数据库中发出玩家还有多少筹码，待办！！！！！
-				outputToClient.writeUTF("筹码");
-	            waitForReady();
-	            deck.Shuffle();
-                Card c1 = deck.Deal();
-                Card c2 = deck.Deal();
-                Dealer_hand.addCard(c1);
-                Dealer_hand.addCard(c2);
-                hidden_card = c1;
-                broadcast(c2.toString());
-                synchronized (clientStreams) {
-                    for (DataOutputStream out : clientStreams) {
-                        try {
-                            out.writeUTF(deck.Deal().toString());
-                            out.writeUTF(deck.Deal().toString());
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }
-	            // Start the game process for this client
-	            handleGameActions();
-	            
-	        } catch (IOException e) {
-	            e.printStackTrace();
-	        }
+			while(true) {
+				try {
+		            // Wait for client to send "ready"
+					//从数据库中发出玩家还有多少筹码，待办！！！！！
+					outputToClient.writeUTF("筹码");
+					Dealer_hand.removeAllCards();
+					deck = new Deck();
+		            waitForReady();
+		            deck.Shuffle();
+	                Card c1 = deck.Deal();
+	                Card c2 = deck.Deal();
+	                Dealer_hand.addCard(c1);
+	                Dealer_hand.addCard(c2);
+	                server_window.append("Dealer begins with: " + c1.toString() + " " + c2.toString() + "\n");
+	                hidden_card = c1;
+	                broadcast(c2.toString());
+	                synchronized (clientStreams) {
+	                    for (DataOutputStream out : clientStreams) {
+	                        try {
+	                            out.writeUTF(deck.Deal().toString());
+	                            out.writeUTF(deck.Deal().toString());
+	                        } catch (IOException e) {
+	                            e.printStackTrace();
+	                        }
+	                    }
+	                }
+		            // Start the game process for this client
+		            handleGameActions();
+		            
+		        } catch (IOException e) {
+		            e.printStackTrace();
+		        }
+			}
 		}
-
-		
 	}
 	
 	@Override
