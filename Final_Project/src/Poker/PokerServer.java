@@ -21,13 +21,15 @@ public class PokerServer extends JFrame implements Runnable{
 	private JTextArea server_window = new JTextArea();
 	private int clientID = 0;
 	private int clientCount = 0;
-	private String allMessages="connected"+"\n";
 	private static ArrayList<DataOutputStream> clientStreams = new ArrayList<>();
 	private static Map<Integer, Boolean> clientReadyStatus = new HashMap<>();
 	private static Map<Integer, Boolean> clientStopStatus = new HashMap<>();
+	private static Map<Integer, Integer> clientbet = new HashMap<>();
 	private static Map<Integer, Integer> clientvalue = new HashMap<>();
+	private static Map<Integer, String> clientresult = new HashMap<>();
 	private static Deck deck = new Deck();
 	private static Hand Dealer_hand = new Hand(); 
+	private static Card hidden_card;
 	
 	private void createMenu() {
 		JMenuBar menuBar = new JMenuBar();
@@ -101,11 +103,13 @@ public class PokerServer extends JFrame implements Runnable{
         private void waitForReady() throws IOException {
             String message = inputFromClient.readUTF();
             if ("ready".equals(message)) {
+            	int bet = inputFromClient.readInt();
                 synchronized (clientReadyStatus) {
-                    clientReadyStatus.put(clientID, true);
-                    server_window.append("Client " + clientID + " is ready.\n");
+                	clientReadyStatus.put(clientID, true);
+                    clientbet.put(clientID, bet);
+                    server_window.append("Client " + clientID + " is ready with bet: " + bet + ".\n");
                     if (allClientsReady()) {
-                        broadcast("All clients ready, proceeding with game.\n");
+                    	broadcast("All clients ready, proceeding with game.\n");
                     }
                 }
             }
@@ -114,6 +118,7 @@ public class PokerServer extends JFrame implements Runnable{
             while (!clientStopStatus.get(clientID)) {
                 String action = inputFromClient.readUTF();
                 if ("hit".equals(action)) {
+                	Dealer_hand.removeAllCards();
                     synchronized (deck) {
                         Card newCard = deck.Deal();
                         outputToClient.writeUTF(newCard.toString());
@@ -121,28 +126,41 @@ public class PokerServer extends JFrame implements Runnable{
                     }
                 } else if ("stop".equals(action)) {
                     clientStopStatus.put(clientID, true);
+                    /*
                     int value = inputFromClient.readInt();
-                    clientvalue.put(clientID, value);
+                    clientvalue.put(clientID, value);*/
                     server_window.append("Client " + clientID + " stopped.\n");
                     if (allClientsStopped()) {
-                        broadcast("All clients have stopped.");
+                    	server_window.append("All clients have stopped.\n");
                         synchronized (deck) {
-                        	while (Dealer_hand.getBlackjackValue() < 17) {
+                        	while (Dealer_hand.getBlackjackValue() < 17 && Dealer_hand.size() < 5) {
                         		Card card = deck.Deal();
                         		Dealer_hand.addCard(card);
+                        		server_window.append("Dealer draw a card: " + card.toString() + "\n");
                         		broadcast(card.toString());
                         	}
                         }
-                        synchronized (clientStreams) {
-                            for (DataOutputStream out : clientStreams) {
-                                try {
-                                    out.writeInt(Dealer_hand.getBlackjackValue());
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-                            }
+                        broadcast("hidden");
+                        broadcast(hidden_card.toString());
+                        server_window.append("Dealer's hand value: " + Dealer_hand.getBlackjackValue() + "\n");
+                        broadcast("done");
+                        //开始处理结果
+                        int dealerValue = Dealer_hand.getBlackjackValue();
+                        int playerValue = inputFromClient.readInt();
+                        server_window.append("Player's hand value: " + playerValue + "\n");
+                        String outcome;
+                        if (playerValue > 21) {
+                            outcome = "Bust";
+                        } else if (dealerValue > 21 || playerValue > dealerValue) {
+                            outcome = "Win";
+                        } else if (playerValue < dealerValue) {
+                            outcome = "Lose";
+                        } else {
+                            outcome = "Tie";
                         }
-                        break;
+                        server_window.append("Result: " + outcome + "\n");
+                        outputToClient.writeUTF(outcome);
+                        outputToClient.writeInt(dealerValue);
                     }
                 }
             }
@@ -160,7 +178,18 @@ public class PokerServer extends JFrame implements Runnable{
                 Card c2 = deck.Deal();
                 Dealer_hand.addCard(c1);
                 Dealer_hand.addCard(c2);
+                hidden_card = c1;
                 broadcast(c2.toString());
+                synchronized (clientStreams) {
+                    for (DataOutputStream out : clientStreams) {
+                        try {
+                            out.writeUTF(deck.Deal().toString());
+                            out.writeUTF(deck.Deal().toString());
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
 	            // Start the game process for this client
 	            handleGameActions();
 	            
