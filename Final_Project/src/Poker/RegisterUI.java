@@ -16,18 +16,19 @@ public class RegisterUI extends JFrame {
 
     private AuthService authService;
 
-    public RegisterUI() {
-        super("用户注册");
-        this.authService = new AuthService(new UserDaoImpl());  // 初始化 AuthService
+    public RegisterUI(AuthService authService) {
+        super("User Registration");
+        this.authService = authService;  // 初始化 AuthService
         initializeUI();
         setUpListeners();
     }
 
+
     private void initializeUI() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(350, 250);
-        setLocationRelativeTo(null);  
-        setLayout(new GridLayout(7, 2, 10, 5));  
+        setLocationRelativeTo(null);
+        setLayout(new GridLayout(7, 2, 10, 5));
 
         // Create UI components
         usernameField = new JTextField();
@@ -36,20 +37,20 @@ public class RegisterUI extends JFrame {
         emailField = new JTextField();
         securityQuestionField = new JTextField();
         securityAnswerField = new JTextField();
-        registerButton = new JButton("注册");
+        registerButton = new JButton("Register");
 
         // Adding components to JFrame
-        add(new JLabel("用户名:"));
+        add(new JLabel("Username:"));
         add(usernameField);
-        add(new JLabel("密码:"));
+        add(new JLabel("Password:"));
         add(passwordField);
-        add(new JLabel("确认密码:"));
+        add(new JLabel("Confirm Password:"));
         add(confirmPasswordField);
-        add(new JLabel("电子邮件:"));
+        add(new JLabel("Email:"));
         add(emailField);
-        add(new JLabel("安全问题:"));
+        add(new JLabel("Security question:"));
         add(securityQuestionField);
-        add(new JLabel("问题答案:"));
+        add(new JLabel("Answer to security question:"));
         add(securityAnswerField);
         add(new JLabel()); // For the button
         add(registerButton);
@@ -73,33 +74,73 @@ public class RegisterUI extends JFrame {
         String email = emailField.getText();
         String securityQuestion = securityQuestionField.getText();
         String securityAnswer = securityAnswerField.getText();
-
+        
+        if (username.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Username cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (password.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Password cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (confirmPassword.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Confirm password cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Email cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (securityQuestion.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Security question cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (securityAnswer.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Answer to security question cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         if (!password.equals(confirmPassword)) {
-            JOptionPane.showMessageDialog(this, "密码和确认密码不匹配", "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Password and confirm password are not the same", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        
         if (securityQuestion.isEmpty() || securityAnswer.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "请填写安全问题及其答案", "错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Please fill the security question and its answer", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        
+        // 设定用户注册时的初始积分
+        int initialScore = 500;
+
         try {
-        	// 密码加密存储提高安全性
-            boolean success = authService.register(username, authService.encryptPassword(password), email, securityQuestion, securityAnswer);
+            // 对密码进行加密
+            String encryptedPassword = authService.encryptPassword(password);
+            // 调用注册方法并传入初始积分
+            boolean success = authService.register(username, encryptedPassword, email, securityQuestion, securityAnswer, initialScore);
             if (success) {
-                JOptionPane.showMessageDialog(this, "注册成功");
-                dispose(); // 可选择关闭窗口
+                JOptionPane.showMessageDialog(this, "Successful registration, congratulations on the registration bonus score：" + initialScore);
+                dispose(); // 关闭注册窗口
+                new LoginUI(authService).setVisible(true); // 打开登录窗口
+            } else {
+                JOptionPane.showMessageDialog(this, "Registration failed, please try again", "Failure", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IllegalStateException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "注册错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Registration failed", JOptionPane.ERROR_MESSAGE);
         }
     }
 
+
     public static void main(String[] args) {
+        UserDao userDao = new UserDaoImpl();  
+        AuthService authService = new AuthService(userDao);  
+
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new RegisterUI(); // Run the constructor
+                new RegisterUI(authService).setVisible(true);  
             }
         });
     }
+
 }
