@@ -24,9 +24,6 @@ public class PokerServer extends JFrame implements Runnable{
 	private static ArrayList<DataOutputStream> clientStreams = new ArrayList<>();
 	private static Map<Integer, Boolean> clientReadyStatus = new HashMap<>();
 	private static Map<Integer, Boolean> clientStopStatus = new HashMap<>();
-	private static Map<Integer, Integer> clientbet = new HashMap<>();
-	//private static Map<Integer, Integer> clientvalue = new HashMap<>();
-	//private static Map<Integer, String> clientresult = new HashMap<>();
 	private static Deck deck;
 	private static Hand Dealer_hand = new Hand(); 
 	private static Card hidden_card;
@@ -84,20 +81,6 @@ public class PokerServer extends JFrame implements Runnable{
             }
 	    }
         
-        private void waitForReady() throws IOException {
-            String message = inputFromClient.readUTF();
-            if ("ready".equals(message)) {
-            	int bet = inputFromClient.readInt();
-                synchronized (clientReadyStatus) {
-                	clientReadyStatus.put(clientID, true);
-                    clientbet.put(clientID, bet);
-                    server_window.append("Client " + clientID + " is ready with bet: " + bet + ".\n");
-                }
-                if (allClientsReady()) {
-                    startNewGame();
-                }
-            }
-        }
         
         private void startNewGame() {
             deck = new Deck();
@@ -118,8 +101,6 @@ public class PokerServer extends JFrame implements Runnable{
                     e.printStackTrace();
                 }
             }
-            clientReadyStatus.clear();
-            clientStopStatus.clear();
         }
         
         @Override
@@ -127,20 +108,37 @@ public class PokerServer extends JFrame implements Runnable{
 			// TODO Auto-generated method stub
 			while(true) {
 				try {
-					waitForReady();
-		            // Start the game process for this client
-		            handleGameActions();
+					String message = inputFromClient.readUTF();
+		            if ("ready".equals(message)) {
+		                synchronized (clientReadyStatus) {
+		                    clientReadyStatus.put(clientID, true);
+		                    server_window.append("Client " + clientID + " is ready.\n");
+		                    System.out.println("Ready status: " + clientReadyStatus.values());
+		                    if (allClientsReady()) {
+		                        startNewGame();
+		                    }
+		                }
+		            } else {
+		            	handleGameActions(message);
+		            }
 		        } catch (IOException e) {
 		            e.printStackTrace();
 		        }
 			}
 		}
+        
         private boolean allClientsReady() {
-            return clientReadyStatus.values().stream().allMatch(status -> status);
+            //return clientReadyStatus.values().stream().allMatch(status -> status);
+        	synchronized (clientReadyStatus) {
+                return clientReadyStatus.values().stream().allMatch(Boolean.TRUE::equals);
+            }
         }
         
         private boolean allClientsStopped() {
-            return clientStopStatus.values().stream().allMatch(Boolean::booleanValue);
+            //return clientStopStatus.values().stream().allMatch(status -> status);
+        	synchronized (clientStopStatus) {
+                return clientStopStatus.values().stream().allMatch(Boolean.TRUE::equals);
+            }
         }
         
         private void broadcast(String message) {
@@ -150,6 +148,40 @@ public class PokerServer extends JFrame implements Runnable{
                         out.writeUTF(message);
                     } catch (IOException e) {
                         e.printStackTrace();
+                    }
+                }
+            }
+        }
+        
+        private void resetClientStatuses() {
+            synchronized (clientReadyStatus) {
+                for (Integer id : clientReadyStatus.keySet()) {
+                    clientReadyStatus.put(id, false);
+                }
+            }
+            synchronized (clientStopStatus) {
+                for (Integer id : clientStopStatus.keySet()) {
+                    clientStopStatus.put(id, false);
+                }
+            }
+            System.out.println("Ready Statuses: " + clientReadyStatus);
+            System.out.println("Stop Statuses: " + clientStopStatus);
+        }
+        
+        private void handleGameActions(String action) throws IOException {
+            if ("hit".equals(action)) {
+                synchronized (deck) {
+                    Card newCard = deck.Deal();
+                    outputToClient.writeUTF(newCard.toString());
+                    server_window.append("Client " + clientID + " hitted and received: " + newCard.toString() + "\n");
+                }
+            } else if ("stop".equals(action)) {
+                synchronized (clientStopStatus) {
+                    clientStopStatus.put(clientID, true);
+                    server_window.append("Client " + clientID + " stopped.\n");
+                    if (allClientsStopped()) {
+                        processEndOfGame();
+                        return;
                     }
                 }
             }
@@ -169,7 +201,7 @@ public class PokerServer extends JFrame implements Runnable{
             broadcast(hidden_card.toString());
             server_window.append("Dealer's hand value: " + Dealer_hand.getBlackjackValue() + "\n");
             broadcast("done");
-          //开始处理结果
+            //开始处理结果
             int dealerValue = Dealer_hand.getBlackjackValue();
             synchronized (clientStreams) {
                 for (DataOutputStream out : clientStreams) {
@@ -180,30 +212,8 @@ public class PokerServer extends JFrame implements Runnable{
                     }
                 }
             }
-            clientReadyStatus.clear();
-            clientStopStatus.clear();
+            resetClientStatuses();
         }
-        
-        private void handleGameActions() throws IOException {
-            while (true) {
-                String action = inputFromClient.readUTF();
-                if ("hit".equals(action)) {
-                    synchronized (deck) {
-                        Card newCard = deck.Deal();
-                        outputToClient.writeUTF(newCard.toString());
-                        server_window.append("Client " + clientID + " hitted and received: " + newCard.toString() + "\n");
-                    }
-                } else if ("stop".equals(action)) {
-                    clientStopStatus.put(clientID, true);
-                    server_window.append("Client " + clientID + " stopped.\n");
-                    if (allClientsStopped()) {
-                    	processEndOfGame();
-                        return;
-                    }
-                }
-            }
-        }
-		
 	}
 	
 	@Override

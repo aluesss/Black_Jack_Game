@@ -39,6 +39,7 @@ public class PokerClient extends JFrame{
     private ImagePanel[] ClientImagePanels, ServerImagePanels;
     //private String chip_num;//先放个string在这里
     private boolean game_begin = false;
+    private boolean game_joined = false;
     private int currCard_client = 0;
     private int currCard_server = 1;
     private static Hand Player_hand = new Hand(); 
@@ -141,6 +142,8 @@ public class PokerClient extends JFrame{
         btnHit.addActionListener(this::onHit);
         btnStop.addActionListener(this::onStop);
         btnReturnToMain.addActionListener(e -> returnToMainMenu());
+        btnHit.setEnabled(false); // 禁用hit按钮
+        btnStop.setEnabled(false); // 禁用stop按钮
         
 
         //buttonPanel.add(btnReady);
@@ -177,8 +180,11 @@ public class PokerClient extends JFrame{
 
 	private void onBet(ActionEvent e) {
 	    // 处理Bet按钮事件
-		if (!game_begin) {
-			statusLabel.setText("Game not begin yet, check upper-left corner");
+		if (!game_joined) {
+			statusLabel.setText("Game not joined yet, check upper-left corner");
+		}
+		else if(game_begin) {
+			statusLabel.setText("Game already begin, value: " + Player_hand.getBlackjackValue());
 		}
 		else {
 		    for (int i = 0; i < 5; i++) {
@@ -203,34 +209,39 @@ public class PokerClient extends JFrame{
 		    } else if (bet > user.getScore()) {
 		        statusLabel.setText("Not enough chips. Your chips: " + user.getScore());
 		    } else {
-		        user.setScore(user.getScore() - bet); // 在user层面修改Score
-		        authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore()); // 实时更新左上角
-		        statusLabel.setText("Waiting for other players...");
-		        try {
-		            toServer.writeUTF("ready");
-		            toServer.writeInt(bet);
-	
-		            String card = fromServer.readUTF();
-		            System.out.println(card);
-	
-		            ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_server++;
-		            // 玩家的牌
-		            card = fromServer.readUTF();
-		            Card card1 = new Card(card);
-		            Player_hand.addCard(card1);
-		            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_client++;
-		            card = fromServer.readUTF();
-		            Card card2 = new Card(card);
-		            Player_hand.addCard(card2);
-		            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_client++;
-		            statusLabel.setText("Current value of your hand: " + Player_hand.getBlackjackValue());
-		        } catch (IOException e1) {
-		            e1.printStackTrace();
-		        }
+		    	new Thread(() -> {
+			    	game_begin = true;
+			    	btnHit.setEnabled(true); // 启用hit按钮
+		            btnStop.setEnabled(true); // 启用stop按钮
+			        user.setScore(user.getScore() - bet); // 在user层面修改Score
+			        authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
+			        scoreLabel.setText("Your chips: " + user.getScore()); // 实时更新左上角
+			        statusLabel.setText("Waiting for other players...");
+			        try {
+			            toServer.writeUTF("ready");
+			            System.out.println("ready sent");
+		
+			            String card = fromServer.readUTF();
+			            System.out.println(card);
+		
+			            ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_server++;
+			            // 玩家的牌
+			            card = fromServer.readUTF();
+			            Card card1 = new Card(card);
+			            Player_hand.addCard(card1);
+			            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_client++;
+			            card = fromServer.readUTF();
+			            Card card2 = new Card(card);
+			            Player_hand.addCard(card2);
+			            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_client++;
+			            statusLabel.setText("Current value of your hand: " + Player_hand.getBlackjackValue());
+			        } catch (IOException e1) {
+			            e1.printStackTrace();
+			        }
+		    	}).start();
 		    }
 	    }
 	}
@@ -267,45 +278,51 @@ public class PokerClient extends JFrame{
 
     private void onStop(ActionEvent e) {
         // 处理Stop按钮事件
-    	try {
-    		toServer.writeUTF("stop");
-			while(true) {
-				String card = fromServer.readUTF();
-				if ("hidden".equals(card)) {
-					String hidden_card = fromServer.readUTF();
-					ServerImagePanels[0].updateImage(new ImageIcon("./images/card_" + hidden_card + ".png").getImage());
+    	new Thread(() -> {
+	    	try {
+	    		toServer.writeUTF("stop");
+	    		statusLabel.setText("Waiting for other players...");
+				while(true) {
+					String card = fromServer.readUTF();
+					if ("hidden".equals(card)) {
+						String hidden_card = fromServer.readUTF();
+						ServerImagePanels[0].updateImage(new ImageIcon("./images/card_" + hidden_card + ".png").getImage());
+					}
+					else if ("done".equals(card)) {
+		                break;
+	                }
+					else {
+						Card cc = new Card(card);
+						ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + cc + ".png").getImage());
+		    			currCard_server ++;
+					}
 				}
-				else if ("done".equals(card)) {
-	                break;
-                }
-				else {
-					Card cc = new Card(card);
-					ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + cc + ".png").getImage());
-	    			currCard_server ++;
-				}
+				int hand_value = Player_hand.getBlackjackValue();
+				int dealer_value = fromServer.readInt();
+				if (hand_value > 21) {
+					statusLabel.setText("Busted! Wish you good luck next time. Your value: " + hand_value);
+		        } else if (dealer_value > 21 || hand_value > dealer_value) {
+		        	statusLabel.setText("Winner Winner, Chicken Dinner! Your value: " + hand_value + " Dealer value: " + dealer_value);
+		        	user.setScore(user.getScore() + bet * 2);//赢钱
+		        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
+			        scoreLabel.setText("Your chips: " + user.getScore());
+		        } else if (hand_value < dealer_value) {
+		        	statusLabel.setText("Bad luck! Sorry for your lost. Your value: " + hand_value + " Dealer value: " + dealer_value);
+		        } else {
+		        	statusLabel.setText("Tie game, want to try again?Your value: " + hand_value + " Dealer value: " + dealer_value);
+		        	user.setScore(user.getScore() + bet);//还钱
+		        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
+			        scoreLabel.setText("Your chips: " + user.getScore());
+		        }
+				btnHit.setEnabled(false); // 禁用hit按钮
+		        btnStop.setEnabled(false); // 禁用stop按钮
+		        game_begin = false;
+				
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
-			int hand_value = Player_hand.getBlackjackValue();
-			int dealer_value = fromServer.readInt();
-			if (hand_value > 21) {
-				statusLabel.setText("Busted! Wish you good luck next time. Your value: " + hand_value);
-	        } else if (dealer_value > 21 || hand_value > dealer_value) {
-	        	statusLabel.setText("Winner Winner, Chicken Dinner! Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        	user.setScore(user.getScore() + bet * 2);//赢钱
-	        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore());
-	        } else if (hand_value < dealer_value) {
-	        	statusLabel.setText("Bad luck! Sorry for your lost. Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        } else {
-	        	statusLabel.setText("Tie game, want to try again?Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        	user.setScore(user.getScore() + bet);//还钱
-	        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore());
-	        }
-			
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+    	}).start();
     }
 	
     class OpenConnectionListener implements ActionListener{
@@ -316,7 +333,7 @@ public class PokerClient extends JFrame{
                 fromServer = new DataInputStream(socket.getInputStream());
                 toServer = new DataOutputStream(socket.getOutputStream());
                 
-                game_begin = true;
+                game_joined = true;
 
                 // 从AuthService获取分数
                 Optional<User> maybeUser = authService.getUserByUsername(user.getUsername());
