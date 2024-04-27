@@ -91,6 +91,10 @@ public class RegisterUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Email cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        if (!email.contains("@")) {
+            JOptionPane.showMessageDialog(this, "Email is invalid, please enter the right Email", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (securityQuestion.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Security question cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
