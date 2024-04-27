@@ -134,10 +134,13 @@ public class PokerClient extends JFrame{
         //btnHit.addActionListener(e -> System.out.println("Hit pressed"));
         //btnStop.addActionListener(e -> System.out.println("Stop pressed"));
         
+        JButton btnReturnToMain = new JButton("Return to Main Menu");
+        
         //btnReady.addActionListener(this::onReady);
         btnBet.addActionListener(this::onBet);
         btnHit.addActionListener(this::onHit);
         btnStop.addActionListener(this::onStop);
+        btnReturnToMain.addActionListener(e -> returnToMainMenu());
         
 
         //buttonPanel.add(btnReady);
@@ -145,8 +148,9 @@ public class PokerClient extends JFrame{
         buttonPanel.add(betField);
         buttonPanel.add(btnHit);
         buttonPanel.add(btnStop);
-        buttonPanel.add(statusLabel, BorderLayout.NORTH);
+        buttonPanel.add(statusLabel);
         controlPanel.add(buttonPanel, BorderLayout.SOUTH);
+        controlPanel.add(btnReturnToMain, BorderLayout.NORTH);  // Add the return button
 
         add(controlPanel, BorderLayout.SOUTH);
         // Top panel to hold username and score labels
@@ -165,6 +169,11 @@ public class PokerClient extends JFrame{
         
         setVisible(true);
     }
+	
+	private void returnToMainMenu() {
+	    this.dispose(); // Close current window
+	    new WelcomeUI(user, authService).setVisible(true); // Open WelcomeUI window
+	}
 
 	private void onBet(ActionEvent e) {
 	    // 处理Bet按钮事件
