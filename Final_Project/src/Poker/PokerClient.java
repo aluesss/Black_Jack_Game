@@ -174,8 +174,26 @@ public class PokerClient extends JFrame{
     }
 	
 	private void returnToMainMenu() {
+		closeConnection();
 	    this.dispose(); // Close current window
 	    new WelcomeUI(user, authService).setVisible(true); // Open WelcomeUI window
+	}
+	
+	private void closeConnection() {
+	    try {
+	        if (toServer != null) {
+	            toServer.close(); // Close the output stream
+	        }
+	        if (fromServer != null) {
+	            fromServer.close(); // Close the input stream
+	        }
+	        if (socket != null) {
+	            socket.close(); // Close the socket
+	            statusLabel.setText("Disconnected from server.");
+	        }
+	    } catch (IOException ex) {
+	        ex.printStackTrace();
+	    }
 	}
 
 	private void onBet(ActionEvent e) {

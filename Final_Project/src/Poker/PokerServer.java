@@ -20,7 +20,6 @@ import java.security.*;
 public class PokerServer extends JFrame implements Runnable{
 	private JTextArea server_window = new JTextArea();
 	private int clientID = 0;
-	private int clientCount = 0;
 	private static ArrayList<DataOutputStream> clientStreams = new ArrayList<>();
 	private static Map<Integer, Boolean> clientReadyStatus = new HashMap<>();
 	private static Map<Integer, Boolean> clientStopStatus = new HashMap<>();
@@ -122,10 +121,28 @@ public class PokerServer extends JFrame implements Runnable{
 		            	handleGameActions(message);
 		            }
 		        } catch (IOException e) {
-		            e.printStackTrace();
-		        }
+		        	server_window.append("Client " + clientID + " disconnected.\n");
+		            cleanupClient();
+		            break;
+		        } 
 			}
 		}
+        
+        private void cleanupClient() {
+            synchronized (clientStreams) {
+                clientStreams.remove(outputToClient);
+                clientReadyStatus.remove(clientID);
+                clientStopStatus.remove(clientID);
+            }
+            try {
+            	if (inputFromClient != null) inputFromClient.close();
+                if (outputToClient != null) outputToClient.close();
+                if (socket != null) socket.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+            server_window.append("Cleaned up resources for client " + clientID + "\n");
+        }
         
         private boolean allClientsReady() {
             //return clientReadyStatus.values().stream().allMatch(status -> status);
@@ -225,7 +242,6 @@ public class PokerServer extends JFrame implements Runnable{
 			 while (true) {
 				 Socket socket = serverSocket.accept();
 				 clientID ++;
-				 clientCount ++;
 				 server_window.append("Starting thread for client " + clientID + " at " + new Date() + '\n');
 				 InetAddress inetAddress = socket.getInetAddress();
 				 server_window.append("Client " + clientID + "'s host name is " + inetAddress.getHostName() + "\n");
