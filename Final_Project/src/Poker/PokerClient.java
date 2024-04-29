@@ -178,7 +178,7 @@ public class PokerClient extends JFrame{
     }
 	
 	private String formatLevelExperience() {
-	    return String.format("Level: %d | Experience: %d/300", user.getLevel(), user.getExperience());
+	    return String.format("Level: %d | Experience: %d/%d", user.getLevel(), user.getExperience(), user.getLevel() * 30);
 	}
 	
 	private void returnToMainMenu() {
@@ -317,7 +317,7 @@ public class PokerClient extends JFrame{
     }
 
     private void updateLevelExperienceDisplay() {
-        String text = String.format("Level: %d | Experience: %d/300", user.getLevel(), user.getExperience());
+        String text = String.format("Level: %d | Experience: %d/%d", user.getLevel(), user.getExperience(), user.getLevel() * 30);
         levelExperienceLabel.setText(text);
     }
 

@@ -123,14 +123,14 @@ public class AuthService {
         // The new experience value is the current experience plus the newly gained experience
         int newExperience = currentExperience + gainedExperience; 
         int newLevel = currentLevel; 
-        //Upgrade Logic
-        while (newExperience >= 300) {
-            newExperience -= 300; 
-            newLevel++; 
+        // Upgrade Logic: The amount of experience needed to upgrade to the next level is the value of the current level * 30
+        while (newExperience >= newLevel * 30) {
+            newExperience -= newLevel * 30; 
+            newLevel++;      
         }
-
         // Update experience and levels in the database
         return userDao.updateExperienceAndLevel(username, newExperience, newLevel);
+       
     }
 
 

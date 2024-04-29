@@ -38,7 +38,7 @@ public class WelcomeUI extends JFrame {
         buttonPanel.add(logoutButton);  
         add(buttonPanel, BorderLayout.CENTER);
 
-        userInfoLabel = new JLabel("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/300", JLabel.CENTER);
+        userInfoLabel = new JLabel("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/" + 30 * user.getLevel(), JLabel.CENTER);
         userInfoLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         add(userInfoLabel, BorderLayout.SOUTH);
 
