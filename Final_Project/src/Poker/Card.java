@@ -44,13 +44,13 @@ public class Card{
     }
     
     public int getRankValue() {
-        if (rank >= 0 && rank < 9) { // '2' 到 '9' （rank为0到7）
-            return rank + 2; // rank值0对应'2', 所以实际点数应为rank+2
+        if (rank >= 0 && rank < 9) { // '2' to '9' （rank is 0 to 7）
+            return rank + 2; // rank value 0 means '2', so actual rank should be rank+2
         } else if (rank == 8) { // 'T' （rank为8）
             return 10;
-        } else if (rank >= 9 && rank <= 11) { // 'J', 'Q', 'K' （rank为9到11）
+        } else if (rank >= 9 && rank <= 11) { // 'J', 'Q', 'K' （rank from 9 to 11）
             return 10;
-        } else if (rank == 12) { // 'A' （rank为12）
+        } else if (rank == 12) { // 'A' （rank 12）
             return 1;
         } else {
             throw new IllegalArgumentException("Invalid card rank");

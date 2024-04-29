@@ -6,8 +6,8 @@ import java.util.*;
 public class Deck{
 	private Card[] cards;
 	private int nextCardIndex = 0;
-	private Random random = new SecureRandom(); //随机数生成
-	//生成牌堆
+	private Random random = new SecureRandom(); //Random value
+	//Generate the deck
 	public Deck() {
         cards = new Card[52];
         int index = 0;
@@ -17,7 +17,7 @@ public class Deck{
             }
         }
     }
-	//洗牌
+	//Shuffle the deck
 	public void Shuffle() {
         for (int oldIndex = 0; oldIndex < 52; oldIndex++) {
             int newIndex = random.nextInt(52);
@@ -27,15 +27,15 @@ public class Deck{
         }
         nextCardIndex = 0;
     }
-	//重置发牌进度
+	//Reset the deck
 	public void Reset() {
         nextCardIndex = 0;
     }
-	//发一张牌
+	//Deal one card
 	public Card Deal() {
         return cards[nextCardIndex++];
     }
-	//发好几张牌
+	//Deal multiple card
 	public List<Card> Deal(int NumOfCards) {
         List<Card> dealtCards = new ArrayList<Card>();
         for (int i = 0; i < NumOfCards; i++) {
@@ -43,7 +43,7 @@ public class Deck{
         }
         return dealtCards;
     }
-	//发一张特定的牌
+	//Deal one fixed card
 	public Card Deal(String cc) {
 		String rank = cc.substring(0, 1);
         char suit = cc.charAt(1);
@@ -100,6 +100,6 @@ public class Deck{
 		System.out.println(dd.Deal());
 		System.out.println(dd.Deal(5));
 		System.out.println(dd.Deal("4C"));
-		System.out.println(dd.Deal("4C"));//应该发不出来，因为4C没了
+		System.out.println(dd.Deal("4C"));//Should be none, since 4C is gone.
 	}
 }

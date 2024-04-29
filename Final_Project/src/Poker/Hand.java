@@ -4,7 +4,7 @@ import java.util.*;
 public class Hand {
 	private Card[] cards = new Card[5];
 	private int num_cards = 0;
-	//初始化空手
+	//Initial empty hand
 	public Hand() {
         // Empty implementation.
     }
@@ -99,20 +99,20 @@ public class Hand {
 	    int totalValue = 0;
 	    int aceCount = 0;
 
-	    // 遍历手中的每张牌，累加点数
+	    // Traverse every card in the hand
 	    for (int i = 0; i < num_cards; i++) {
-	        int value = cards[i].getRankValue(); // Card类有一个方法getRankValue()来返回牌的21点游戏中的点数
-	        if (value == 1) { // 如果是Ace
+	        int value = cards[i].getRankValue(); // getRankValue() in card class to get the rank value of card in BlackJack.
+	        if (value == 1) { // If ACE
 	            aceCount++;
-	            totalValue += 1; // 先把Ace当作1分计算
+	            totalValue += 1; // Consider ACE as 1
 	        } else {
 	            totalValue += value;
 	        }
 	    }
 
-	    // 尽可能地将Ace当作11分计算，但要保证总分不超过21
+	    // Try best to consider ACE as 11, as long as not busted
 	    while (aceCount > 0 && totalValue + 10 <= 21) {
-	        totalValue += 10; // 将一个Ace从1分调整为11分，增加10分
+	        totalValue += 10; // Fix an ACE from 1 to 11, so add 10
 	        aceCount--;
 	    }
 
