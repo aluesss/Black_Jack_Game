@@ -9,4 +9,10 @@
 
 数据库密码：1768
 
-介绍技术栈：swing
+查看数据库中信息：
+USE pokerdb;
+SELECT * FROM users;
+
+删除数据库，重新建立：
+DROP DATABASE pokerdb;
+

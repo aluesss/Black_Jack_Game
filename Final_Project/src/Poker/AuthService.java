@@ -16,14 +16,14 @@ public class AuthService {
     
     public boolean register(String username, String password, String email, String securityQuestion, String securityAnswer, int initialScore) {
         if (userDao.usernameExists(username)) {
-            throw new IllegalStateException("该用户名已被占用");
+            throw new IllegalStateException("This username is already taken");
         }
         if (userDao.emailExists(email)) {
-            throw new IllegalStateException("该邮箱已被占用");
+            throw new IllegalStateException("This mailbox is already taken");
         }
-        String encryptedPassword = encryptPassword(password);  // 加密密码
-        // 使用参数中的 initialScore 创建用户
-        User user = new User(username, encryptedPassword, email, initialScore, securityQuestion, securityAnswer);
+        String encryptedPassword = encryptPassword(password);  // Encrypted password
+        // Create User
+        User user = new User(username, encryptedPassword, email, initialScore, 1, 0, securityQuestion, securityAnswer);
         return userDao.addUser(user);
     }
 
@@ -34,32 +34,32 @@ public class AuthService {
 
 
     public Optional<User> login(String username, String password) {
-        // 加密输入的密码
+        // Encrypt the entered password
         String encryptedPassword = encryptPassword(password);
-        // 验证用户
+        // Verify user
         return userDao.validateUser(username, encryptedPassword);
     }
 
 
-    // 根据用户名获取用户信息
+    // Get user information based on user name
     public Optional<User> getUserByUsername(String username) {
         return userDao.getUserByUsername(username);
     }
 
-    // 更新用户密码
+    // Update user passwords
     public boolean updateUserPassword(String username, String newPassword) {
         Optional<User> user = getUserByUsername(username);
         if (user.isPresent()) {
-            // 加密新密码
+            // Encrypt the new password
             String encryptedPassword = encryptPassword(newPassword);
             user.get().setPassword(encryptedPassword);
-            // 更新用户信息
+            // Update user information
             return userDao.updateUser(user.get());
         }
         return false;
     }
 
-    // 密码加密方式
+    // Password encryption method
     protected String encryptPassword(String password) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -77,25 +77,26 @@ public class AuthService {
     }
     
     public boolean deleteUser(String username, String password, String email) {
-        // 加密输入的密码
+        // Encrypting the entered password
         String encryptedPassword = encryptPassword(password);
-        // 使用validateUser 方法来验证用户身份
+        // Use the validateUser method to authenticate a user
         Optional<User> user = userDao.validateUser(username, encryptedPassword);
         if (user.isPresent() && user.get().getEmail().equals(email)) {
-            // 如果用户存在并且电子邮箱匹配，则删除用户
+            // If the user exists and the e-mail address matches, delete the user
             return userDao.deleteUser(username);
         }
-        return false; // 如果验证失败，返回 false
+        return false; // Returns false if validation fails
     }
     
     public Optional<User> validateUser(String username, String password) {
-        String encryptedPassword = encryptPassword(password);  // 使用加密方法
-        return userDao.validateUser(username, encryptedPassword);  // 调用 validateUser 方法
+        String encryptedPassword = encryptPassword(password);  // Use of encryption
+        return userDao.validateUser(username, encryptedPassword);  // Call the validateUser method
     }
 
     public boolean canClaimReward(String username) {
         Date lastClaimed = userDao.getLastRewardClaimed(username);
-        return lastClaimed == null || !isSameDay(lastClaimed, new Date()); //如果lastClaimed == null则说明该用户是第一次领取签到奖励，可以直接发放签到奖励
+        // If lastClaimed == null then this is the first time the user has received a check-in reward and the reward can be issued directly.
+        return lastClaimed == null || !isSameDay(lastClaimed, new Date()); 
     }
     
     public boolean isSameDay(Date date1, Date date2) {
@@ -114,5 +115,32 @@ public class AuthService {
     public void updateLastRewardClaimed(String username, Date date) {
         userDao.updateLastRewardClaimed(username, date);
     }
+    
+    // Update user experience and levels
+    public boolean updateExperienceAndLevel(String username, int gainedExperience) {
+        int currentExperience = userDao.getExperience(username); // Get current experience
+        int currentLevel = userDao.getLevel(username); // Get current level
+        // The new experience value is the current experience plus the newly gained experience
+        int newExperience = currentExperience + gainedExperience; 
+        int newLevel = currentLevel; 
+        //Upgrade Logic
+        while (newExperience >= 300) {
+            newExperience -= 300; 
+            newLevel++; 
+        }
 
+        // Update experience and levels in the database
+        return userDao.updateExperienceAndLevel(username, newExperience, newLevel);
+    }
+
+
+    // Getting the user's experience
+    public int getExperience(String username) {
+        return userDao.getExperience(username);
+    }
+
+    // Getting the user's level
+    public int getLevel(String username) {
+        return userDao.getLevel(username);
+    }
 }

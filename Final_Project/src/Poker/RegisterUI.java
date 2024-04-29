@@ -13,24 +13,23 @@ public class RegisterUI extends JFrame {
     private JTextField securityQuestionField;
     private JTextField securityAnswerField;
     private JButton registerButton;
+    private JButton loginButton; 
 
     private AuthService authService;
 
     public RegisterUI(AuthService authService) {
         super("User Registration");
-        this.authService = authService;  // 初始化 AuthService
+        this.authService = authService;  // Initialize the AuthService
         initializeUI();
         setUpListeners();
     }
 
-
     private void initializeUI() {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(350, 250);
+        setSize(350, 300);
         setLocationRelativeTo(null);
-        setLayout(new GridLayout(7, 2, 10, 5));
+        setLayout(new GridLayout(8, 2, 10, 6));
 
-        // Create UI components
         usernameField = new JTextField();
         passwordField = new JPasswordField();
         confirmPasswordField = new JPasswordField();
@@ -38,8 +37,8 @@ public class RegisterUI extends JFrame {
         securityQuestionField = new JTextField();
         securityAnswerField = new JTextField();
         registerButton = new JButton("Register");
+        loginButton = new JButton("Go to login page");
 
-        // Adding components to JFrame
         add(new JLabel("Username:"));
         add(usernameField);
         add(new JLabel("Password:"));
@@ -52,9 +51,11 @@ public class RegisterUI extends JFrame {
         add(securityQuestionField);
         add(new JLabel("Answer to security question:"));
         add(securityAnswerField);
-        add(new JLabel()); // For the button
+        add(new JLabel()); 
         add(registerButton);
-
+        add(new JLabel());  
+        add(loginButton);
+        
         setVisible(true);
     }
 
@@ -65,8 +66,20 @@ public class RegisterUI extends JFrame {
                 performRegistration();
             }
         });
+
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                goToLoginScreen();  
+            }
+        });
     }
 
+    private void goToLoginScreen() {
+        dispose();  // Close the registration window
+        new LoginUI(authService).setVisible(true);  // Open the login window
+    }
+    
     private void performRegistration() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
@@ -91,6 +104,10 @@ public class RegisterUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Email cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
+        if (!email.contains("@")) {
+            JOptionPane.showMessageDialog(this, "Email is invalid, please enter the right Email", "Failure", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         if (securityQuestion.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Security question cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
@@ -110,18 +127,18 @@ public class RegisterUI extends JFrame {
             return;
         }
         
-        // 设定用户注册时的初始积分
-        int initialScore = 500;
+        // Initial Bonus Points for User Registration
+        int initialScore = 1000;
 
         try {
-            // 对密码进行加密
+            // Password encryption
             String encryptedPassword = authService.encryptPassword(password);
-            // 调用注册方法并传入初始积分
+            // Call the register method and pass in the initial points
             boolean success = authService.register(username, encryptedPassword, email, securityQuestion, securityAnswer, initialScore);
             if (success) {
                 JOptionPane.showMessageDialog(this, "Successful registration, congratulations on the registration bonus score：" + initialScore);
-                dispose(); // 关闭注册窗口
-                new LoginUI(authService).setVisible(true); // 打开登录窗口
+                dispose(); // Close Registration Window
+                new LoginUI(authService).setVisible(true); // Open login window
             } else {
                 JOptionPane.showMessageDialog(this, "Registration failed, please try again", "Failure", JOptionPane.ERROR_MESSAGE);
             }
@@ -142,5 +159,4 @@ public class RegisterUI extends JFrame {
             }
         });
     }
-
 }

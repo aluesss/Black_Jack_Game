@@ -7,6 +7,8 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     score INT DEFAULT 0,
+    experience INT DEFAULT 0,
+    level INT DEFAULT 1,
     security_question VARCHAR(255) NOT NULL,
     security_answer VARCHAR(255) NOT NULL,
     last_reward_claimed DATE

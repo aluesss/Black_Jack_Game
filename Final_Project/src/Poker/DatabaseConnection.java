@@ -5,9 +5,9 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnection {
-    private static final String URL = "jdbc:mysql://localhost:3306/pokerdb?useSSL=false&serverTimezone=UTC";//数据库运行接口
-    private static final String USER = "root"; // 数据库用户名
-    private static final String PASSWORD = "1768"; // 数据库密码
+    private static final String URL = "jdbc:mysql://localhost:3306/pokerdb?useSSL=false&serverTimezone=UTC";// Database Operational Interface
+    private static final String USER = "root"; // Database Username
+    private static final String PASSWORD = "1768"; // Database password
 
     private static Connection connection;
 

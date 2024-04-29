@@ -24,14 +24,14 @@ public class ImagePanel extends JPanel {
         setMinimumSize(size);
         setMaximumSize(size);
         setSize(size);
-        revalidate(); // 通知布局管理器该组件已更改大小
-        repaint(); // 请求重绘组件
+        revalidate(); // Notification that the Layout Manager component has changed size
+        repaint(); // Request a repaint of the component
     }
 
     public void paintComponent(Graphics g) {
-        super.paintComponent(g); // 首先绘制面板的背景
+        super.paintComponent(g); // Drawing panel backgrounds
         if (img != null) {
-            g.drawImage(img, 0, 0, getWidth(), getHeight(), this); // 在调整大小后确保图像填满整个面板
+            g.drawImage(img, 0, 0, getWidth(), getHeight(), this); // Make sure the image fills the panel
         }
     }
     

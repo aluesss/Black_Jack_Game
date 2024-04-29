@@ -4,16 +4,20 @@ import java.util.Optional;
 import java.util.Date;
 //import java.text.SimpleDateFormat;
 
+// Method declarations
 public interface UserDao {
     boolean addUser(User user);
     Optional<User> getUserByUsername(String username);
     Optional<User> validateUser(String username, String password);
     boolean updateUser(User user);
-    boolean deleteUser(String username);// 注销账户
+    boolean deleteUser(String username);// Delete accounts
     boolean updateSecurityInfo(String username, String securityQuestion, String securityAnswer);
-    boolean usernameExists(String username);  // 检查用户名是否被占用
-    boolean emailExists(String email);       // 检查邮箱地址是否被占用
-    boolean updateScore(String username, int score); // 更新score
-    boolean updateLastRewardClaimed(String username, Date date);  // 上次领取签到奖励的时间
+    boolean usernameExists(String username);  // Check if the username is taken
+    boolean emailExists(String email);       // Check if the e-mail address is taken
+    boolean updateScore(String username, int score); // Update score
+    boolean updateLastRewardClaimed(String username, Date date);  // Last time receiving the sign-in bonus
     Date getLastRewardClaimed(String username);
+    int getExperience(String username);
+    int getLevel(String username);
+    boolean updateExperienceAndLevel(String username, int newExperience, int newLevel);
 }

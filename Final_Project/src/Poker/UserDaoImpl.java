@@ -7,9 +7,9 @@ import java.util.Date;
 
 public class UserDaoImpl implements UserDao {
 
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/pokerdb";// 连接MySQL数据库
-    private static final String USER = "root";// MySQL数据库用户名
-    private static final String PASS = "1768";// MySQL数据库中该用户名对应的密码
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/pokerdb";// Connecting to MySQL Database
+    private static final String USER = "root";// MySQL database user name
+    private static final String PASS = "1768";// The password for this Username in the MySQL database, in this case 1768.
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, USER, PASS);
@@ -47,10 +47,13 @@ public class UserDaoImpl implements UserDao {
                     rs.getString("password"),
                     rs.getString("email"),
                     rs.getInt("score"),
+                    rs.getInt("level"),         
+                    rs.getInt("experience"),    
                     rs.getString("security_question"),
                     rs.getString("security_answer")
                 ));
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -63,7 +66,7 @@ public class UserDaoImpl implements UserDao {
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
-            pstmt.setString(2, password);  // 已经是加密的密码
+            pstmt.setString(2, password);  // It's already an encrypted password.
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
                 return Optional.of(new User(
@@ -71,6 +74,8 @@ public class UserDaoImpl implements UserDao {
                     rs.getString("password"),
                     rs.getString("email"),
                     rs.getInt("score"),
+                    rs.getInt("level"),         
+                    rs.getInt("experience"),    
                     rs.getString("security_question"),
                     rs.getString("security_answer")
                 ));
@@ -137,7 +142,7 @@ public class UserDaoImpl implements UserDao {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, username);
             ResultSet rs = pstmt.executeQuery();
-            return rs.next();  // 如果查询结果存在，则返回true，表明用户名已被占用
+            return rs.next();  // If the query result exists, then the username is already occupied
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -165,7 +170,7 @@ public class UserDaoImpl implements UserDao {
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, email);
             ResultSet rs = pstmt.executeQuery();
-            return rs.next();  // 如果查询结果存在，则返回true，表明邮箱已被占用
+            return rs.next();  // If the query result exists, the mailbox is occupied
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -195,13 +200,62 @@ public class UserDaoImpl implements UserDao {
             if (rs.next()) {
                 return rs.getDate("last_reward_claimed");
             } else {
-                return null; // 当没有记录时返回 null，这种情况在本系统中表示用户自从注册以来还没领过签到奖励
+                return null; // Returns null when there is no record, which in this system means that the user has not received a reward since registration.
             }
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
         }
     }
+    @Override
+    public int getExperience(String username) {
+        String sql = "SELECT experience FROM users WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("experience");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    @Override
+    public int getLevel(String username) {
+        String sql = "SELECT level FROM users WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, username);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("level");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 1;
+    }
+
+    @Override
+    public boolean updateExperienceAndLevel(String username, int newExperience, int newLevel) {
+        String sql = "UPDATE users SET experience = ?, level = ? WHERE username = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, newExperience);
+            pstmt.setInt(2, newLevel);
+            pstmt.setString(3, username);
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
 
 
 }

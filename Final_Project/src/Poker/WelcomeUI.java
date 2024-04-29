@@ -6,9 +6,9 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 public class WelcomeUI extends JFrame {
-    private User user; // 存储用户信息
-    private AuthService authService; // 用于处理密码更改和更新积分
-    private JLabel userInfoLabel; // 用于实时显示Score更新
+    private User user; // Storing user information
+    private AuthService authService; // For processing password changes and updating credits
+    private JLabel userInfoLabel; // For real-time display of Score updates
 
     public WelcomeUI(User user, AuthService authService) {
         super("Welcome");
@@ -16,7 +16,7 @@ public class WelcomeUI extends JFrame {
         this.authService = authService;
         initializeUI();
     }
-
+    
     private void initializeUI() {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setSize(600, 400);
@@ -38,22 +38,22 @@ public class WelcomeUI extends JFrame {
         buttonPanel.add(logoutButton);  
         add(buttonPanel, BorderLayout.CENTER);
 
-        userInfoLabel = new JLabel("Username: " + user.getUsername() + " | Score: " + user.getScore(), JLabel.CENTER);
+        userInfoLabel = new JLabel("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/300", JLabel.CENTER);
         userInfoLabel.setFont(new Font("SansSerif", Font.PLAIN, 16));
         add(userInfoLabel, BorderLayout.SOUTH);
 
-        // Event Listeners
+        // Listeners
         startGameButton.addActionListener(e -> startGame());
         changePasswordButton.addActionListener(e -> changePassword());
         claimRewardButton.addActionListener(e -> claimDailyReward());
-        logoutButton.addActionListener(e -> logout());  // 设置退出登录的监听器
+        logoutButton.addActionListener(e -> logout());  // The listener for logging out
 
         setVisible(true);
     }
 
     private void startGame() {
-        this.dispose(); // 关闭欢迎界面
-        // [前后端接口]: 发送用户信息
+        this.dispose(); // Close the welcome page
+        // [Front-end and back-end interfaces]: Send user information
         SwingUtilities.invokeLater(() -> new PokerClient(user, authService));
     }
 
@@ -61,26 +61,26 @@ public class WelcomeUI extends JFrame {
 
 
     private void changePassword() {
-        // 请求用户输入新密码
+        // Request the user to enter a new password
         String newPassword = JOptionPane.showInputDialog(this, "Please set a new password：");
         
-        // 检查是否点击了取消或关闭了对话框
+        // Check if the user clicked Cancel or closed the dialog box
         if (newPassword == null) {
-            // 用户取消操作，不进行任何处理
+            // The user cancels the operation without any processing
             //System.out.println("Password change cancelled.");
             return;
         }
 
-        // 去除输入的前后空格
+        // Remove spaces before and after the input
         newPassword = newPassword.trim();
 
-        // 确保新密码不为空
+        // Make sure the new password is not empty
         if (newPassword.isEmpty()) {
             JOptionPane.showMessageDialog(this, "New password cannot be empty", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // 更新密码操作
+        // Update Password
         authService.updateUserPassword(user.getUsername(), authService.encryptPassword(newPassword));
         JOptionPane.showMessageDialog(this, "Password updated", "Success", JOptionPane.INFORMATION_MESSAGE);
         //System.out.println("Password changed.");
@@ -94,18 +94,18 @@ public class WelcomeUI extends JFrame {
             return;
         }
 
-        int newScore = user.getScore() + 20;
+        int newScore = user.getScore() + 200;
         user.setScore(newScore);
         authService.updateUserScore(user.getUsername(), newScore);
         authService.updateLastRewardClaimed(user.getUsername(), new Date());
-        JOptionPane.showMessageDialog(this, "Successful check-in increases Score by 20 (^ ~ ^)", "Successful claim", JOptionPane.INFORMATION_MESSAGE);
-        userInfoLabel.setText("Username: " + user.getUsername() + " | Score: " + user.getScore());
+        JOptionPane.showMessageDialog(this, "Successful check-in increases Score by 200 (^ ~ ^)", "Successful claim", JOptionPane.INFORMATION_MESSAGE);
+        userInfoLabel.setText("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/300");
     }
 
     private void logout() {
-        dispose();  // 关闭当前窗口
+        dispose();  // Close current window
         
-        SwingUtilities.invokeLater(() -> new LoginUI(authService)); // 重新显示登录界面
+        SwingUtilities.invokeLater(() -> new LoginUI(authService)); // Redisplay the login screen
     }
 
     private boolean isSameDay(Date date1, Date date2) {

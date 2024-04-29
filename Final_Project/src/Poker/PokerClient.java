@@ -17,50 +17,48 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-
 import javax.swing.*;
-
 import java.security.*;
 import java.util.Optional;
 
 public class PokerClient extends JFrame{
-	private User user;  // 声明存储用户信息
-	private AuthService authService; //声明AuthService中的函数，下面要用updateUserScore
+	private User user;  // Statement to store user information
+	private AuthService authService; // Declare the function in the AuthService that you want to use to updateUserScore.
 	
 	Socket socket = null;
 	DataOutputStream toServer = null;
 	DataInputStream fromServer = null;
-	
-	private JLabel usernameLabel; // Label to display Username
+	// Labels
+	private JLabel usernameLabel; 
 	private JPanel cardPanel, controlPanel;
     private JLabel scoreLabel, statusLabel;
     private JTextField betField;
     private JButton btnBet, btnHit, btnStop;
     private ImagePanel[] ClientImagePanels, ServerImagePanels;
-    //private String chip_num;//先放个string在这里
     private boolean game_begin = false;
+    private boolean game_joined = false;
     private int currCard_client = 0;
     private int currCard_server = 1;
     private static Hand Player_hand = new Hand(); 
     private int bet;
     
-    public PokerClient(User user) { 
-        this.user = user;  // 接收并存储用户信息
-        createMenu();
-        prepareGUI();
-    }
+    //public PokerClient(User user) { 
+    //    this.user = user;  
+    //    createMenu();
+    //    prepareGUI();
+    //}
     
     public PokerClient(User user, AuthService authService) { 
-        this.user = user;  // 接收并存储用户信息
-        this.authService = authService;  // 接收并存储AuthService
+        this.user = user;  // Receive and store user information
+        this.authService = authService;  // Receive and store AuthService
         createMenu();
         prepareGUI();
     }
 
     /*
-    private User user; // 存储用户信息
-    private AuthService authService; // 用于处理密码更改和更新积分
-    private JLabel userInfoLabel; // 用于实时显示Score更新*/
+    private User user; // user info
+    private AuthService authService; // update password/score
+    private JLabel userInfoLabel; // output score*/
 	
 	private void createMenu() {
 		JMenuBar menuBar = new JMenuBar();
@@ -81,6 +79,7 @@ public class PokerClient extends JFrame{
     }
 	
 	
+	private JLabel levelExperienceLabel;
 	
 	private void prepareGUI() {
 		setTitle("Poker Client");
@@ -134,10 +133,15 @@ public class PokerClient extends JFrame{
         //btnHit.addActionListener(e -> System.out.println("Hit pressed"));
         //btnStop.addActionListener(e -> System.out.println("Stop pressed"));
         
+        JButton btnReturnToMain = new JButton("Return to Main Menu");
+        
         //btnReady.addActionListener(this::onReady);
         btnBet.addActionListener(this::onBet);
         btnHit.addActionListener(this::onHit);
         btnStop.addActionListener(this::onStop);
+        btnReturnToMain.addActionListener(e -> returnToMainMenu());
+        btnHit.setEnabled(false); // Disable the button
+        btnStop.setEnabled(false);
         
 
         //buttonPanel.add(btnReady);
@@ -145,31 +149,67 @@ public class PokerClient extends JFrame{
         buttonPanel.add(betField);
         buttonPanel.add(btnHit);
         buttonPanel.add(btnStop);
-        buttonPanel.add(statusLabel, BorderLayout.NORTH);
+        buttonPanel.add(statusLabel);
         controlPanel.add(buttonPanel, BorderLayout.SOUTH);
+        controlPanel.add(btnReturnToMain, BorderLayout.NORTH);  // Add the return button
 
         add(controlPanel, BorderLayout.SOUTH);
         // Top panel to hold username and score labels
         JPanel topPanel = new JPanel(new BorderLayout());
 
-        // Score label
+        // Score label setup
         scoreLabel = new JLabel("Your chips: " + user.getScore());
-        topPanel.add(scoreLabel, BorderLayout.WEST);  // Add score label to the left side of the top panel
+        scoreLabel.setHorizontalAlignment(SwingConstants.LEFT);
+        topPanel.add(scoreLabel, BorderLayout.WEST); // Place at the top left
+
+        // Level and Experience information label
+        levelExperienceLabel = new JLabel(formatLevelExperience());
+        levelExperienceLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        topPanel.add(levelExperienceLabel, BorderLayout.CENTER); // Place at the top center
 
         // Username label setup
         usernameLabel = new JLabel("Username: " + user.getUsername());
         usernameLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        topPanel.add(usernameLabel, BorderLayout.EAST);  // Add username label to the right side of the top panel
+        topPanel.add(usernameLabel, BorderLayout.EAST); // Place at the top right
 
         add(topPanel, BorderLayout.NORTH);
         
         setVisible(true);
     }
+	
+	private String formatLevelExperience() {
+	    return String.format("Level: %d | Experience: %d/300", user.getLevel(), user.getExperience());
+	}
+	
+	private void returnToMainMenu() {
+		closeConnection();
+	    this.dispose(); // Close current window
+	    new WelcomeUI(user, authService).setVisible(true); // Open WelcomeUI window
+	}
+	
+	private void closeConnection() {
+	    try {
+	        if (toServer != null) {
+	            toServer.close(); // Close the output stream
+	        }
+	        if (fromServer != null) {
+	            fromServer.close(); // Close the input stream
+	        }
+	        if (socket != null) {
+	            socket.close(); // Close the socket
+	        }
+	    } catch (IOException ex) {
+	        ex.printStackTrace();
+	    }
+	}
 
 	private void onBet(ActionEvent e) {
-	    // 处理Bet按钮事件
-		if (!game_begin) {
-			statusLabel.setText("Game not begin yet, check upper-left corner");
+	    // Bet button handler
+		if (!game_joined) {
+			statusLabel.setText("Game not joined yet, check upper-left corner");
+		}
+		else if(game_begin) {
+			statusLabel.setText("Game already begin, value: " + Player_hand.getBlackjackValue());
 		}
 		else {
 		    for (int i = 0; i < 5; i++) {
@@ -194,41 +234,46 @@ public class PokerClient extends JFrame{
 		    } else if (bet > user.getScore()) {
 		        statusLabel.setText("Not enough chips. Your chips: " + user.getScore());
 		    } else {
-		        user.setScore(user.getScore() - bet); // 在user层面修改Score
-		        authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore()); // 实时更新左上角
-		        statusLabel.setText("Waiting for other players...");
-		        try {
-		            toServer.writeUTF("ready");
-		            toServer.writeInt(bet);
-	
-		            String card = fromServer.readUTF();
-		            System.out.println(card);
-	
-		            ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_server++;
-		            // 玩家的牌
-		            card = fromServer.readUTF();
-		            Card card1 = new Card(card);
-		            Player_hand.addCard(card1);
-		            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_client++;
-		            card = fromServer.readUTF();
-		            Card card2 = new Card(card);
-		            Player_hand.addCard(card2);
-		            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
-		            currCard_client++;
-		            statusLabel.setText("Current value of your hand: " + Player_hand.getBlackjackValue());
-		        } catch (IOException e1) {
-		            e1.printStackTrace();
-		        }
+		    	new Thread(() -> {
+			    	game_begin = true;
+			    	btnHit.setEnabled(true); // Enable hit
+		            btnStop.setEnabled(true); // Enable stop
+			        user.setScore(user.getScore() - bet); // Modifying Score at the user level
+			        authService.updateUserScore(user.getUsername(), user.getScore()); // Updating user-level changes to the database using authService
+			        scoreLabel.setText("Your chips: " + user.getScore()); // Real-time update of chip count (score) in the upper left corner
+			        statusLabel.setText("Waiting for other players...");
+			        try {
+			            toServer.writeUTF("ready");
+			            System.out.println("ready sent");
+		
+			            String card = fromServer.readUTF();
+			            System.out.println(card);
+		
+			            ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_server++;
+			            // Player's card
+			            card = fromServer.readUTF();
+			            Card card1 = new Card(card);
+			            Player_hand.addCard(card1);
+			            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_client++;
+			            card = fromServer.readUTF();
+			            Card card2 = new Card(card);
+			            Player_hand.addCard(card2);
+			            ClientImagePanels[currCard_client].updateImage(new ImageIcon("./images/card_" + card + ".png").getImage());
+			            currCard_client++;
+			            statusLabel.setText("Current value of your hand: " + Player_hand.getBlackjackValue());
+			        } catch (IOException e1) {
+			            e1.printStackTrace();
+			        }
+		    	}).start();
 		    }
 	    }
 	}
 
 
     private void onHit(ActionEvent e) {
-        // 处理Hit按钮事件
+        // Hit button handler
     	try {
     		if (currCard_client == 5) {
     			statusLabel.setText("You can't hit more, the maximun amount of card has reached, value: " + Player_hand.getBlackjackValue());
@@ -256,48 +301,77 @@ public class PokerClient extends JFrame{
 		}
     }
 
-    private void onStop(ActionEvent e) {
-        // 处理Stop按钮事件
-    	try {
-    		toServer.writeUTF("stop");
-			while(true) {
-				String card = fromServer.readUTF();
-				if ("hidden".equals(card)) {
-					String hidden_card = fromServer.readUTF();
-					ServerImagePanels[0].updateImage(new ImageIcon("./images/card_" + hidden_card + ".png").getImage());
-				}
-				else if ("done".equals(card)) {
-	                break;
-                }
-				else {
-					Card cc = new Card(card);
-					ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + cc + ".png").getImage());
-	    			currCard_server ++;
-				}
-			}
-			int hand_value = Player_hand.getBlackjackValue();
-			int dealer_value = fromServer.readInt();
-			if (hand_value > 21) {
-				statusLabel.setText("Busted! Wish you good luck next time. Your value: " + hand_value);
-	        } else if (dealer_value > 21 || hand_value > dealer_value) {
-	        	statusLabel.setText("Winner Winner, Chicken Dinner! Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        	user.setScore(user.getScore() + bet * 2);//赢钱
-	        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore());
-	        } else if (hand_value < dealer_value) {
-	        	statusLabel.setText("Bad luck! Sorry for your lost. Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        } else {
-	        	statusLabel.setText("Tie game, want to try again?Your value: " + hand_value + " Dealer value: " + dealer_value);
-	        	user.setScore(user.getScore() + bet);//还钱
-	        	authService.updateUserScore(user.getUsername(), user.getScore()); // 利用authService将user层面的修改更新至数据库
-		        scoreLabel.setText("Your chips: " + user.getScore());
-	        }
-			
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
+    private void updateExperienceLevel(int scoreWon) {
+        // Directly call the methods for experience and level calculation in AuthService
+        if (authService.updateExperienceAndLevel(user.getUsername(), scoreWon)) {
+            // If the database update is successful, synchronize the update of local user objects
+            user.setExperience(authService.getExperience(user.getUsername()));
+            user.setLevel(authService.getLevel(user.getUsername()));
+
+            // Updated UI display
+            updateLevelExperienceDisplay();
+        } else {
+            // Handling error conditions if the update fails
+            System.err.println("Failed to update experience and level");
+        }
     }
+
+    private void updateLevelExperienceDisplay() {
+        String text = String.format("Level: %d | Experience: %d/300", user.getLevel(), user.getExperience());
+        levelExperienceLabel.setText(text);
+    }
+
+    
+    private void onStop(ActionEvent e) {
+        new Thread(() -> {
+            try {
+                toServer.writeUTF("stop");
+                statusLabel.setText("Waiting for other players...");
+                while (true) {
+                    String card = fromServer.readUTF();
+                    if ("hidden".equals(card)) {
+                        String hidden_card = fromServer.readUTF();
+                        ServerImagePanels[0].updateImage(new ImageIcon("./images/card_" + hidden_card + ".png").getImage());
+                    } else if ("done".equals(card)) {
+                        break;
+                    } else {
+                        Card cc = new Card(card);
+                        ServerImagePanels[currCard_server].updateImage(new ImageIcon("./images/card_" + cc + ".png").getImage());
+                        currCard_server++;
+                    }
+                }
+                int hand_value = Player_hand.getBlackjackValue();
+                int dealer_value = fromServer.readInt();
+                int scoreWon = 0;
+                if (hand_value > 21) {
+                    statusLabel.setText("Busted! Wish you good luck next time. Your value: " + hand_value);
+                } else if (dealer_value > 21 || hand_value > dealer_value) {
+                    scoreWon = bet * 2; 
+                    statusLabel.setText("Winner Winner, Chicken Dinner! Your value: " + hand_value + " Dealer value: " + dealer_value);
+                    int expup = scoreWon / 2;  // Double your chips for a win, exp only counts for the winnings
+                    updateExperienceLevel(expup);
+                } else if (hand_value < dealer_value) {
+                    statusLabel.setText("Bad luck! Sorry for your lost. Your value: " + hand_value + " Dealer value: " + dealer_value);// No chips or exp if lose
+                } else {
+                    statusLabel.setText("Tie game, want to try again? Your value: " + hand_value + " Dealer value: " + dealer_value);
+                    scoreWon = bet;  // Ties return chips, no experience added
+                }
+                // Update the score in UI and database
+                int newScore = user.getScore() + scoreWon;
+                user.setScore(newScore);
+                authService.updateUserScore(user.getUsername(), newScore);
+                
+                scoreLabel.setText("Your chips: " + user.getScore());
+                btnHit.setEnabled(false); // Disable hit button
+                btnStop.setEnabled(false); // Disable stop button
+                game_begin = false;
+
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }).start();
+    }
+
 	
     class OpenConnectionListener implements ActionListener{
         @Override
@@ -307,17 +381,17 @@ public class PokerClient extends JFrame{
                 fromServer = new DataInputStream(socket.getInputStream());
                 toServer = new DataOutputStream(socket.getOutputStream());
                 
-                game_begin = true;
+                game_joined = true;
 
-                // 从AuthService获取分数
+                // Getting scores
                 Optional<User> maybeUser = authService.getUserByUsername(user.getUsername());
                 if (maybeUser.isPresent()) {
                     User currentUser = maybeUser.get();
-                    // 更新UI显示分数
+                    // Update UI to show scores
                     scoreLabel.setText("Your chips: " + currentUser.getScore());
                 }
 
-                // 现在，客户端已经更新了UI，可以发送准备就绪的信号给服务器
+                // The client has updated the UI, sending a ready signal to the server
                 statusLabel.setText("Game joined, please type in the bet and press bet");
             } catch (IOException e1) {
                 e1.printStackTrace();
