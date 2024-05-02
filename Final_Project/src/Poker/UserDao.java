@@ -15,7 +15,7 @@ public interface UserDao {
     boolean usernameExists(String username);  // Check if the username is taken
     boolean emailExists(String email);       // Check if the e-mail address is taken
     boolean updateScore(String username, int score); // Update score
-    boolean updateLastRewardClaimed(String username, Date date);  // Last time receiving the sign-in bonus
+    boolean updateLastRewardClaimed(String username, Date date);  // Latest time receiving the sign-in bonus
     Date getLastRewardClaimed(String username);
     int getExperience(String username);
     int getLevel(String username);

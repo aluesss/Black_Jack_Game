@@ -23,7 +23,7 @@ USE pokerdb;
 SELECT * FROM users;
 
 删除数据库，重新建立：
-Delete the database to rebuild.
+Delete the database to rebuild:
 DROP DATABASE pokerdb;
 
 运行方式：

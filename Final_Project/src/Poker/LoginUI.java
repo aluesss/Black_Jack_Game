@@ -30,7 +30,7 @@ public class LoginUI extends JFrame {
         passwordField = new JPasswordField();
         loginButton = new JButton("Login");
         forgotPasswordButton = new JButton("Forgot password?");
-        deleteAccountButton = new JButton("Deregister your account");
+        deleteAccountButton = new JButton("Delete your account");
         registerButton = new JButton("Create account");
 
         add(new JLabel("Username:"));
@@ -82,7 +82,7 @@ public class LoginUI extends JFrame {
             JOptionPane.showMessageDialog(this, "Please enter your username before trying to retrieve your password.", "Failure", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        // Reset the password to the same as the original password can also be reset to the same
+        // When you reset your password, you can also set it to the same password as the original one.
         Optional<User> user = authService.getUserByUsername(username);
         if (user.isPresent()) {
             String securityQuestion = user.get().getSecurityQuestion();
@@ -90,7 +90,7 @@ public class LoginUI extends JFrame {
             if (answer != null && answer.equals(user.get().getSecurityAnswer())) {
                 String newPassword = JOptionPane.showInputDialog(this, "The answer is correct, please set a new password：");
                 if (newPassword == null) {
-                    // The user clicks Cancel or closes the dialog box without taking any action
+                    // The user clicks Cancel or closes the dialog box ,taking no action
                     return;
                 }
                 if (newPassword.isEmpty()) {
@@ -99,10 +99,11 @@ public class LoginUI extends JFrame {
                 }
                 if (newPassword != null && !newPassword.isEmpty()) {
                     authService.updateUserPassword(username, authService.encryptPassword(newPassword));// Password encrypted storage for increased security
+                    
                     JOptionPane.showMessageDialog(this, "Password updated", "Success", JOptionPane.INFORMATION_MESSAGE);
                 }
             } else {
-                JOptionPane.showMessageDialog(this, "Incorrect answer or unanswered to the security question.", "Failure", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Incorrect answer or didn't answered to the security question.", "Failure", JOptionPane.ERROR_MESSAGE);
             }
         } else {
             JOptionPane.showMessageDialog(this, "No users found for this username.", "Failure", JOptionPane.ERROR_MESSAGE);
@@ -130,18 +131,18 @@ public class LoginUI extends JFrame {
             // Add confirmation of the logout process to ensure that no accounts are logged out by mistake
             if (authService.validateUser(username, encryptedPassword).isPresent() && authService.getUserByUsername(username).get().getEmail().equals(email)) {
                 // User information is correct, confirm that you really want to cancel the account
-                int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to deregister this account?", "Confirmation of deregistration", JOptionPane.YES_NO_OPTION);
+                int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this account?", "Confirmation of deletion", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     // The function to delete a user is only called when the user clicks "Yes", it is not called when the user clicks x to exit or clicks "No".
                     if (authService.deleteUser(username, encryptedPassword, email)) {
-                        JOptionPane.showMessageDialog(this, "Account deleted", "Successful deregistration", JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Account deleted", "Successful deletion", JOptionPane.INFORMATION_MESSAGE);
                     } else {
-                        JOptionPane.showMessageDialog(this, "Failed to deregister, please try again", "Failure", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(this, "Failed to delete the account, please try again", "Failure", JOptionPane.ERROR_MESSAGE);
                     }
                 }
             } else {
             	// To protect user information, no reminder of which information is incorrect (you can try the password if reminded)
-                JOptionPane.showMessageDialog(this, "Account information is incorrect and cannot be canceled", "Failure", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Account information is incorrect and the account deletion failed, please try again", "Failure", JOptionPane.ERROR_MESSAGE);
             }
         }
     }

@@ -5,6 +5,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.security.SecureRandom;
+
 
 public class AuthService {
 
@@ -21,49 +23,65 @@ public class AuthService {
         if (userDao.emailExists(email)) {
             throw new IllegalStateException("This mailbox is already taken");
         }
-        String encryptedPassword = encryptPassword(password);  // Encrypted password
-        // Create User
-        User user = new User(username, encryptedPassword, email, initialScore, 1, 0, securityQuestion, securityAnswer);
+        String salt = generateSalt();
+        String encryptedPassword = encryptPassword(password + salt);  // Append salt to password before the encrypt process
+        User user = new User(username, encryptedPassword, salt, email, initialScore, 1, 0, securityQuestion, securityAnswer);
         return userDao.addUser(user);
     }
 
+    // Generate a five-digit salt
+    private String generateSalt() {
+        SecureRandom random = new SecureRandom();
+        int num = 10000 + random.nextInt(90000);
+        return String.valueOf(num);
+    }
 
+    
     public boolean updateUserScore(String username, int newScore) {
         return userDao.updateScore(username, newScore);
     }
 
 
     public Optional<User> login(String username, String password) {
-        // Encrypt the entered password
-        String encryptedPassword = encryptPassword(password);
-        // Verify user
-        return userDao.validateUser(username, encryptedPassword);
+        // Get the salt of user
+        Optional<User> user = userDao.getUserByUsername(username);
+        if (user.isPresent()) {
+            // Salt the provided password and use encryptPassword to hash it
+            String saltedAndHashedPassword = encryptPassword(password + user.get().getSalt());
+            // Compare the hashed password with the stored one in the database
+            if (saltedAndHashedPassword.equals(user.get().getPassword())) {
+                return user;
+            }
+        }
+        return Optional.empty();
     }
 
 
-    // Get user information based on user name
+    // Get user information
     public Optional<User> getUserByUsername(String username) {
         return userDao.getUserByUsername(username);
     }
 
-    // Update user passwords
+    // Update user's password
     public boolean updateUserPassword(String username, String newPassword) {
         Optional<User> user = getUserByUsername(username);
         if (user.isPresent()) {
-            // Encrypt the new password
-            String encryptedPassword = encryptPassword(newPassword);
+            // Use the existing salt of user (Not changing the salt when changing the password)
+            String existingSalt = user.get().getSalt();
+            // Salt new password and use encryptPassword to hash it
+            String encryptedPassword = encryptPassword(newPassword + existingSalt);
+            // Set the new password
             user.get().setPassword(encryptedPassword);
-            // Update user information
             return userDao.updateUser(user.get());
         }
         return false;
     }
 
-    // Password encryption method
-    protected String encryptPassword(String password) {
+    // Password encryption
+    protected String encryptPassword(String passwordWithSalt) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(password.getBytes());
+            byte[] hash = md.digest(passwordWithSalt.getBytes());
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
@@ -76,21 +94,27 @@ public class AuthService {
         }
     }
     
+    
     public boolean deleteUser(String username, String password, String email) {
-        // Encrypting the entered password
-        String encryptedPassword = encryptPassword(password);
-        // Use the validateUser method to authenticate a user
-        Optional<User> user = userDao.validateUser(username, encryptedPassword);
-        if (user.isPresent() && user.get().getEmail().equals(email)) {
-            // If the user exists and the e-mail address matches, delete the user
-            return userDao.deleteUser(username);
+        // Get the salt of user
+        Optional<User> userOpt = userDao.getUserByUsername(username);
+        if (userOpt.isPresent()) {
+            User user = userOpt.get();
+            // Salt the password and use encryptPassword to hash it
+            String saltedAndHashedPassword = encryptPassword(password + user.getSalt());
+            // Check whether the hashed password and email match their counterparts stored in the database
+            if (saltedAndHashedPassword.equals(user.getPassword()) && user.getEmail().equals(email)) {
+                // If all matches, delete the user
+                return userDao.deleteUser(username);
+            }
         }
-        return false; // Returns false if validation fails
+        return false;  // Returns false if the condition is not met
     }
+
+
     
     public Optional<User> validateUser(String username, String password) {
-        String encryptedPassword = encryptPassword(password);  // Use of encryption
-        return userDao.validateUser(username, encryptedPassword);  // Call the validateUser method
+        return login(username, password);
     }
 
     public boolean canClaimReward(String username) {
@@ -99,6 +123,7 @@ public class AuthService {
         return lastClaimed == null || !isSameDay(lastClaimed, new Date()); 
     }
     
+    // Determine if it's the same day
     public boolean isSameDay(Date date1, Date date2) {
         SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd");
         return fmt.format(date1).equals(fmt.format(date2));

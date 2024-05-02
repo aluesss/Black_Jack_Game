@@ -3,9 +3,10 @@ package Poker;
 public class User {
     private String username;
     private String password; // Stored as encrypted
+    private String salt; // Used in password encryption process for the security of the password
     private String email;
     private int score; // User's game points
-    private int level; // User's level 
+    private int level; // User's level
     private int experience; // User's experience
     private String securityQuestion;
     private String securityAnswer;
@@ -14,10 +15,11 @@ public class User {
     public User() {
     }
 
-    // Constructor with all parameters
-    public User(String username, String password, String email, int score, int level, int experience, String securityQuestion, String securityAnswer) {
+    // Constructor
+    public User(String username, String password, String salt, String email, int score, int level, int experience, String securityQuestion, String securityAnswer) {
         this.username = username;
         this.password = password;
+        this.salt = salt;
         this.email = email;
         this.score = score;
         this.level = level;
@@ -41,6 +43,14 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
     }
 
     public String getEmail() {
@@ -96,6 +106,7 @@ public class User {
         return "User{" +
                 "username='" + username + '\'' +
                 ", password='[PROTECTED]'" +
+                ", salt='" + salt + '\'' +
                 ", email='" + email + '\'' +
                 ", score=" + score +
                 ", level=" + level +

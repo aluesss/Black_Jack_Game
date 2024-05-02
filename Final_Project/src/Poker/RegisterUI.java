@@ -19,7 +19,7 @@ public class RegisterUI extends JFrame {
 
     public RegisterUI(AuthService authService) {
         super("User Registration");
-        this.authService = authService;  // Initialize the AuthService
+        this.authService = authService; 
         initializeUI();
         setUpListeners();
     }

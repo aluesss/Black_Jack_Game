@@ -99,13 +99,13 @@ public class WelcomeUI extends JFrame {
         authService.updateUserScore(user.getUsername(), newScore);
         authService.updateLastRewardClaimed(user.getUsername(), new Date());
         JOptionPane.showMessageDialog(this, "Successful check-in increases Score by 200 (^ ~ ^)", "Successful claim", JOptionPane.INFORMATION_MESSAGE);
-        userInfoLabel.setText("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/300");
+        userInfoLabel.setText("Username: " + user.getUsername() + " | Score: " + user.getScore() + " | Level: " + user.getLevel() + " | Experience: " + user.getExperience() + "/" + 30 * user.getLevel());
     }
-
+    
     private void logout() {
         dispose();  // Close current window
         
-        SwingUtilities.invokeLater(() -> new LoginUI(authService)); // Redisplay the login screen
+        SwingUtilities.invokeLater(() -> new LoginUI(authService)); // Display the login window
     }
 
     private boolean isSameDay(Date date1, Date date2) {
